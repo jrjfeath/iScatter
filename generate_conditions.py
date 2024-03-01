@@ -9,4 +9,3 @@ def generate_conditions(sc, trajectories=10):
     #write log into some file
     open(sc.filename + '.logfile','w').writelines(sc.log)
     return sc.fileout
-

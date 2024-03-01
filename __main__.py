@@ -1,8 +1,8 @@
 import argparse
-from contextlib import contextmanager
 import os
 import sys
 import warnings
+from contextlib import contextmanager
 
 @contextmanager
 def suppress_stdout():
@@ -17,9 +17,9 @@ def suppress_stdout():
 #Supress warning from pyscf about B3lYP since we are using semi-empircal
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=UserWarning)
-    from iscatter.functions import iscattering
-    from .test import generate_conditions
+    from iScatter.functions import iscattering
     from .mindo_pyscf_hess import calculate_hessian
+    from .generate_conditions import generate_conditions
     from .rundyn import calculate_at_timesteps
     from .analyse_test import analyse_output
 
@@ -29,7 +29,7 @@ parser=argparse.ArgumentParser(
     epilog="""""")
 parser.add_argument('filename', metavar='Filename', type=str, nargs=1, help='Input filename')
 parser.add_argument('-v','--version', action='version', version='%(prog)s 1.0')
-parser.add_argument('-he','--hessian', action="count", help='Calculates hessian values from input.xyz')
+parser.add_argument('-he','--hessian', action="count", help='Calculates hessian values from input.xyz, to be run on its own.')
 parser.add_argument('-g','--generate', action="count", help='Generate initial conditions from input')
 parser.add_argument('-cs','--calcsteps', action="count", help='Run dynamics on generated trajectories with PYSCF')
 parser.add_argument('-a','--analyse', action="count", help='Verify the generated MD data from PYSCF')
@@ -42,14 +42,20 @@ args=parser.parse_args()
 if args.hessian: 
     print('Calculating hessians, please wait.')
     with suppress_stdout():
-        calculate_hessian(args.filename[0])
+        result = calculate_hessian(args.filename[0])
+    if result == 0:
+        print('Finished Calculating Hessians.')
+    if result == 1:
+        print('The .xyz file provided seems to contain incorrect syntax.')
+    if result == 2:
+        print(f'Cannot find the specified file {args.filename[0]}')
+    exit()
 
 #For anything else create scatter object
-if not args.hessian:     
-    # instantiate scatter object
-    sc = iscattering.iscatter()
-    # read input file as argument ./test.py input
-    sc.ReadInput(args.filename[0])
+# instantiate scatter object
+sc = iscattering.iscatter()
+# read input file as argument ./test.py input
+sc.ReadInput(args.filename[0])
 
 if args.generate: 
     output_name = generate_conditions(sc, args.traj[0])
@@ -65,5 +71,6 @@ if args.calcsteps:
             calculate_at_timesteps(f'{sc.fileout}_{i}.xyz',args.time[0],args.steps[0])
         print(f'Finished calculating trajectory: {i+1} of {args.traj[0]}')
     os.chdir("..")
+
 if args.analyse:
     analyse_output(sc, args.traj[0])

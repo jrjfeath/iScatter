@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import numpy as np
-from pyscf import gto, lib, md, semiempirical
+from pyscf import gto, md, semiempirical
 
 fmt2au, au2fmt = 41.3413745, 1.0 / 41.3413745
 ang2au, au2ang = 1.88973, 1.0 / 1.88973
@@ -13,27 +12,29 @@ def calculate_at_timesteps(filename,time_step=20,step_count=10):
         print('time = ', local['self'].time)
         velocs[local['self'].time] = local['self'].veloc.copy()
 
-    nam = filename[:-4]
     mol = gto.Mole()
     mol.basis = 'sto-3g'
     mol.atom = filename
     mol.charge = 0
     mol.spin = 1
     mol.symmetry = False
-    mol.build()
+    try: mol.build()
+    except RuntimeError:
+        mol.spin = 2
+        mol.build()
     mold = semiempirical.MINDO3(mol)
-    init_veloc = np.array([[float(f) for f in ln.strip().split()[1:]] for ln in open(nam+'.vel','r').readlines()[2:]])*ang2au/fmt2au
+    init_veloc = np.array([[float(f) for f in ln.strip().split()[1:]] for ln in open(f'{filename[:-4]}.vel','r').readlines()[2:]])*ang2au/fmt2au
     myscanner = mold.nuc_grad_method().as_scanner()
     myintegrator = md.NVE(myscanner,
         dt=time_step,
         steps=step_count,
         veloc=init_veloc,
         callback=getvel,
-        energy_output=nam+".md.data",
-        trajectory_output=nam+".md.xyz"
+        data_output=f'{filename[:-4]}.md.data',
+        trajectory_output=f'{filename[:-4]}.md.xyz'
     ).run()
-    en0 = float(open('ref.en','r').readline().strip())
-    lins = [ln.strip() for ln in open(nam+".md.data",'r').readlines()]
+    en0 = float(open('../ref.en','r').readline().strip())
+    lins = [ln.strip() for ln in open(f'{filename[:-4]}.md.data','r').readlines()]
     out = [lins[0]+'\n']
     for ln in lins[1:]:
         lns = ln.strip().split()
@@ -44,7 +45,7 @@ def calculate_at_timesteps(filename,time_step=20,step_count=10):
         nn = np.array(nn)*au2ev
         st += ''.join([  "{0:13.9f}".format(n).rjust(20) for n in nn ]) +'\n'
         out.append(st)
-    open(nam + '.dat','w').writelines(out)
+    open(f'{filename[:-4]}.dat','w').writelines(out)
     na = len(mol._atom)
     el = [e[0] for e in  mol._atom] 
     out  = []
@@ -53,4 +54,4 @@ def calculate_at_timesteps(filename,time_step=20,step_count=10):
         out += [ 'Time = ' + str(time) + '\n' ]
         for i, vv in enumerate(velocs[time]):
             out += [el[i] + '  ' +  ''.join(["{0:13.9f}".format(v*au2ang/au2fmt) for v in vv ]) + '\n']
-    open(nam + '.md.vel','w').writelines(out)
+    open(f'{filename[:-4]}.md.vel','w').writelines(out)

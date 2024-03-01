@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
+import os
 import numpy as np
 from pyscf import gto, semiempirical
 from pyscf.qsdopt.hesstools import filter_hessian
 from pyscf.geomopt.geometric_solver import optimize as geometric_opt
-
 
 def central_differences_hess(mol, g_scanner):
     """Evaluate numerical hessian of the energy using central differences."""
@@ -32,6 +32,9 @@ def central_differences_hess(mol, g_scanner):
     return H
 
 def calculate_hessian(filename):
+    if not os.path.isfile(filename):
+        return 2
+    
     conv_params = { # These are the default settings
         'convergence_energy': 2e-7,  # Eh
         'convergence_grms': 1e-5,    # Eh/Bohr
@@ -49,7 +52,12 @@ def calculate_hessian(filename):
     mol.spin = 1
     #mol.symmetry = False
     mol.symmetry = True
-    mol.build()
+    try: mol.build()
+    except SyntaxError:
+        return 1
+    except RuntimeError:
+        mol.spin = 2
+        mol.build()
     moldft = semiempirical.MINDO3(mol)
     mol2 = geometric_opt(moldft,maxsteps=1000,**conv_params)
     mol2.symmetry = True
@@ -77,4 +85,4 @@ def calculate_hessian(filename):
     for atm in mol2._atom:
         print(atm[0], atm[1])
         open(filename[:-4]+'_geom.xyz','w').writelines([str(natm)+'\n',' \n']+[atm[0] + ' ' + ''.join(['{0:15.10f}'.format(e*au2ang)+'  ' for e in atm[1]]) +'\n' for atm in mol2._atom])
-    print('Finished Calculating Hessians.')
+    return 0

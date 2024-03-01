@@ -1,0 +1,8 @@
+#reference geometry of the molecule
+xyz  = h2om_geom.xyz  
+#mass scaled hessian of the molecule at ref geometry (for some method), if not present vibrations are neglected
+hess = h2om_hessian.txt  
+#name of molecule
+w    = h2om_freq.txt       
+# choose space-molecular frame orientation sampling, default= 0 (spherical), 1 = dipole polarized along the z coordinate (and then alpha and beta parameters)
+# ordist 1  0.64 1.26 
