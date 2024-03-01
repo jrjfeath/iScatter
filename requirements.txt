@@ -1,0 +1,5 @@
+numpy
+geometric
+pyscf
+pyscf-semiempirical
+pyscf-qsdopt
