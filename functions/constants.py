@@ -1,4 +1,5 @@
 import numpy as np
+from periodictable import elements
 
 # Conversion factors
 fmt2au, au2fmt = 41.3413745, 1.0 / 41.3413745
@@ -20,31 +21,10 @@ x = np.array([1.0, 0.0, 0.0])
 y = np.array([0.0, 1.0, 0.0])
 z = np.array([0.0, 0.0, 1.0])
 
-# Atomic number to element mapping
-an2el = {
-    1: 'H',
-    2: 'He',
-    3: 'Li',
-    4: 'Be',
-    5: 'B',
-    6: 'C',
-    7: 'N',
-    8: 'O',
-    9: 'F',
-    10: 'Ne'
-}
-
-# Element to mass mapping
-el2m = {
-    'H': 1.00784,
-    'He': 4.0026,
-    'Li': 6.9410,
-    'Be': 9.0122,
-    'B': 10.811,
-    'C': 12.011,
-    'N': 14.007,
-    'O': 15.999,
-    'F': 18.998,
-    'Ne': 20.180
-}
+# Generate dictionaries containing symbol, mass, and number
+an2el = {}
+el2m = {}
+for element in elements:
+    an2el[element.number] = element.symbol
+    el2m[element.symbol] = element.mass
 

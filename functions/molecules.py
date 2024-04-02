@@ -94,8 +94,8 @@ class imolecule:
                             'Full Width Half-Maximum (FWHM): '               
                             + val[1] + '\n'
                         ]
-                        self.velfwhm = float(val[1])*mps2au                         
-                    self.Tvel = float(val[0])*mps2au 
+                        self.velfwhm = float(val[1])                        
+                    self.Tvel = float(val[0])
             if ky == "hess":
                 self.HH = np.loadtxt(val[0])
             if ky == "name":
@@ -202,8 +202,8 @@ class imolecule:
         Returns:
         list: Log messages.
         """
+        log = [" :" + self.name + " : \n"]
         if self.na > 1:
-            log = [" :" + self.name + " : \n"]
             U = EckartFrameTrans(self.xxe, self.sxx, self.mass)
             phi, theta, chi = iR2q(EckartFrameTrans(
                 self.xxe, self.sxx, self.mass).T)
@@ -937,7 +937,7 @@ class imolecule:
                 for j in self.rotsamp[0]:
                     jd[j] += 1
                 log += [" Rotational State Distribuition:\n"]
-                LR = [i for i in range(MaxR) if jd[i] > 0.0][-1]+1
+                LR = [i for i in range(MaxR) if jd[i] >= 0.0][-1]+1
                 log += ["".join([str(i).rjust(7) for i in range(LR)]) + "\n"]
                 log += ["".join([str(j).rjust(7) for j in jd[:LR]]) + "\n"]
             else:

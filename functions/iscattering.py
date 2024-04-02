@@ -36,9 +36,7 @@ class iscatter:
         self.filename = fnam
         self.prefix = fnam.split(".")[0]
         self.GenerateInputData()
-        self.MaxB = 10.0
         self.distdir = self.prefix + "_dist"
-        self.seed = 100
         self.fileout = 'out'
         if not os.path.isdir(self.distdir):
             os.system("mkdir " + self.distdir)
@@ -78,8 +76,8 @@ class iscatter:
                             'Full Width Half-Maximum (FWHM): '
                             + val[1] + '\n'
                         ]
-                        self.velfwhm = float(val[1])*mps2au
-                    self.Tvel = float(val[0])*mps2au
+                        self.velfwhm = float(val[1])
+                    self.Tvel = float(val[0])
             if ky == "fileout":
                 self.log += ["Prefix output Prefix Name: " + val[0] + "\n"]
                 self.fileout = val[0]
@@ -354,8 +352,6 @@ class iscatter:
                 ],
                 0,
             ]
-
-
         elif T < 0:
             self.log += ["Generated intermolecular velocity " + str(abs(T)) + "\n"]
             d = abs(T)*mps2au
@@ -579,16 +575,16 @@ class iscatter:
         else:
             message = " "
         self.Mol2Image()
-        self.slog += [" Sample " + str(self.sii) + " Coordinates (Ang) : \n"]
-        xyz = XYZlist(self.el, self.sxx * au2ang,
-                      mess=message + " Coordinate (Ang)")
-        vxyz = XYZlist(self.el, self.svv * au2ang / au2fmt,
-                       mess=message + " Velocities (Ang/fmts)")
+        self.slog += [" Sample " + str(self.sii) + " Coordinates (au) : \n"]
+        xyz = XYZlist(self.el, self.sxx,
+                      mess=message + " Coordinate (au)")
+        vxyz = XYZlist(self.el, self.svv,
+                       mess=message + " Velocities (au)")
         if not os.path.isdir(self.dirout):
             os.system("mkdir " + self.dirout)
         self.slog += xyz
         self.slog += [" Sample " +
-                      str(self.sii) + " Velocities (Ang/fmts) : \n"]
+                      str(self.sii) + " Velocities (au) : \n"]
         self.slog += vxyz[2:]
         open(
             self.dirout + "/" + self.fileout +
@@ -673,10 +669,8 @@ class iscatter:
         Returns:
             numpy.ndarray: Inter-molecular z-velocity.
         """
-        mol = self.mol
         sy = np.zeros((2, 3))
         mm = np.array([sum(self.mol[0].mass), sum(self.mol[1].mass)])
-        MM = sum(mm)
         sy[0, :] = z * V1
         sy[1, :] = -z * V2
         vcom = COM(sy, mm)
@@ -694,7 +688,6 @@ class iscatter:
         Returns:
             numpy.ndarray: Inter-molecular z-velocity for both molecules.
         """
-        mol = self.mol
         vv = np.zeros((2, 3))
         vv[0, :] = -(z * V) * self.w1
         vv[1, :] = (z * V) * self.w0
@@ -734,8 +727,8 @@ class iscatter:
         """
         self.slog += [" -Rigid Rotor State Sample: \n"]
         mol = self.mol
-        self.slog += mol[0].SampleRigidRotorState()
-        self.slog += mol[1].SampleRigidRotorState()
+        # self.slog += mol[0].SampleRigidRotorState()
+        # self.slog += mol[1].SampleRigidRotorState()
 
     def SampleHOVibrState(self):
         """Sample harmonic oscillator vibrational states.
