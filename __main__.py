@@ -1,5 +1,6 @@
 import argparse
 import os
+import platform
 import sys
 import warnings
 from contextlib import contextmanager
@@ -14,14 +15,16 @@ def suppress_stdout():
         finally:
             sys.stdout = old_stdout
 
-#Supress warning from pyscf about B3lYP since we are using semi-empircal
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=UserWarning)
-    from iScatter.functions import iscattering
-    from .mindo_pyscf_hess import calculate_hessian
-    from .generate_conditions import generate_conditions
-    from .rundyn import calculate_at_timesteps
-    from .analyse_test import analyse_output
+# The following functions work on all platforms
+from iScatter.functions import iscattering
+from .generate_conditions import generate_conditions
+from .analyse_test import analyse_output
+# Supress warning from pyscf about B3lYP since we are using semi-empircal
+if platform.system() != 'Windows':
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=UserWarning)
+        from .mindo_pyscf_hess import calculate_hessian
+        from .rundyn import calculate_at_timesteps
 
 parser=argparse.ArgumentParser(
     prog='IScatter',
@@ -39,17 +42,21 @@ parser.add_argument('--steps', type=int, nargs=1, default=[10], help='Number of 
 args=parser.parse_args()
 
 #If the user is calculating hessian values
-if args.hessian: 
-    print('Calculating hessians, please wait.')
-    with suppress_stdout():
-        result = calculate_hessian(args.filename[0])
-    if result == 0:
-        print('Finished Calculating Hessians.')
-    if result == 1:
-        print('The .xyz file provided seems to contain incorrect syntax.')
-    if result == 2:
-        print(f'Cannot find the specified file {args.filename[0]}')
-    exit()
+if args.hessian:
+    if platform.system() != 'Windows':
+        print('Calculating hessians, please wait.')
+        with suppress_stdout():
+            result = calculate_hessian(args.filename[0])
+        if result == 0:
+            print('Finished Calculating Hessians.')
+        if result == 1:
+            print('The .xyz file provided seems to contain incorrect syntax.')
+        if result == 2:
+            print(f'Cannot find the specified file {args.filename[0]}')
+        exit()
+    else:
+        print('This function is not windows compatible!')
+        exit()
 
 #For anything else create scatter object
 # instantiate scatter object
@@ -61,16 +68,20 @@ if args.generate:
     output_name = generate_conditions(sc, args.traj[0])
 
 if args.calcsteps:
-    #PYSCF must been run in the same directory as the files
-    os.chdir("outputs")
-    for i in range(args.traj[0]):
-        if not os.path.isfile(f'{sc.fileout}_{i}.xyz'):
-            print(f'Trajectory {i+1} failed, {sc.fileout}_{i}.xyz does not exist?')
-            continue
-        with suppress_stdout():
-            calculate_at_timesteps(f'{sc.fileout}_{i}.xyz',args.time[0],args.steps[0])
-        print(f'Finished calculating trajectory: {i+1} of {args.traj[0]}')
-    os.chdir("..")
+    if platform.system() != 'Windows':
+        #PYSCF must been run in the same directory as the files
+        os.chdir("outputs")
+        for i in range(args.traj[0]):
+            if not os.path.isfile(f'{sc.fileout}_{i}.xyz'):
+                print(f'Trajectory {i+1} failed, {sc.fileout}_{i}.xyz does not exist?')
+                continue
+            with suppress_stdout():
+                calculate_at_timesteps(f'{sc.fileout}_{i}.xyz',args.time[0],args.steps[0])
+            print(f'Finished calculating trajectory: {i+1} of {args.traj[0]}')
+        os.chdir("..")
+    else:
+        print('This function is not windows compatible!')
+        exit()
 
 if args.analyse:
     analyse_output(sc, args.traj[0])

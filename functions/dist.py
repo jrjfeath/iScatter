@@ -53,7 +53,7 @@ def GaussianF(x, x0, fwhm):
     float: Gaussian function value.
     """
     sigma = fwhm/(2*np.sqrt(2.0*np.log(2.0)))
-    a     = 1.0/(2*sigma**2)
+    a = 1.0/(2*sigma**2)
     return np.exp(-a * (x-x0)**2)
 
 def IPDist(b, MaxB):

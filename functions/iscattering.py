@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 from .constants import ang2au, au2ang, au2ev, au2fmt, au2mps, fmt2au, kboltz, mps2au, x, y, z
 from .dist import IPDist, MaxwellBoltzmann, GaussianF
 from .functions import COM, File2InputList, XYZlist, ReadXYZs
@@ -60,24 +61,18 @@ class iscatter:
                 self.log += mol[int(val[0])].log
                 mol[int(val[0])].log = []
             if ky == "tvel":
-                if float(val[0]) > 0.0:
-                    self.log += [
-                        "Temperature for Intermolecular Velocity: "
-                        + val[0]+ " \n"
-                    ]
-                    self.Tvel = float(val[0])
-                else:
+                self.log += [
+                    "Temperature for Intermolecular Velocity: "
+                    + val[0]+ " \n"
+                ]
+                self.Tvel = float(val[0])
+                self.velfwhm = 0.0
+                if len(val) > 1:
                     self.log +=[ 
-                        'Intermolecular Velocity (m/s) centre: '
-                        + val[0]+ ' FWHM: ' + val[1] + '\n'
+                        'Full Width Half-Maximum (FWHM): '
+                        + val[1] + '\n'
                     ]
-                    if len(val) > 1:
-                        self.log +=[ 
-                            'Full Width Half-Maximum (FWHM): '
-                            + val[1] + '\n'
-                        ]
-                        self.velfwhm = float(val[1])
-                    self.Tvel = float(val[0])
+                    self.velfwhm = float(val[1])*mps2au
             if ky == "fileout":
                 self.log += ["Prefix output Prefix Name: " + val[0] + "\n"]
                 self.fileout = val[0]
@@ -355,14 +350,14 @@ class iscatter:
         elif T < 0:
             self.log += ["Generated intermolecular velocity " + str(abs(T)) + "\n"]
             d = abs(T)*mps2au
-            if hasattr(self,'velfwhm'):
+            if hasattr(self,'velfwhm') and self.velfwhm > 0.0:
                 self.log += [" FWHM: " + str(self.velfwhm) + "\n"]
                 self.velsamp = [
                     SampleMC(self.Nsamp,[d],GaussianF,[d,self.velfwhm],idel=d*0.1)[0],
                     0,
                 ]
             else:  
-                self.velsamp = [abs(T) for T in range(self.Nsamp)]
+                self.velsamp = [[np.array(d) for _ in range(self.Nsamp)],0]
         if abs(T) > 0:
             hist, edg = np.histogram(self.velsamp[0], bins=10)
             self.log += ["Total Velocity Distribuitio (m/s):\n"]
