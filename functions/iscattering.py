@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 from .constants import ang2au, au2ang, au2ev, au2fmt, au2mps, fmt2au, kboltz, mps2au, x, y, z
 from .dist import IPDist, MaxwellBoltzmann, GaussianF
 from .functions import COM, File2InputList, XYZlist, ReadXYZs
