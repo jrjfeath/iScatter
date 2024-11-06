@@ -39,6 +39,7 @@ parser.add_argument('-a','--analyse', action="count", help='Verify the generated
 parser.add_argument('--traj', type=int, nargs=1, default=[10], help='Number of trajectories (10 default)')
 parser.add_argument('--time', type=int, nargs=1, default=[20], help='Time step (20 fs default) for MD')
 parser.add_argument('--steps', type=int, nargs=1, default=[10], help='Number of steps (10 default) for MD')
+parser.add_argument('--seed', type=int, nargs=1, default=[-1], help='Seed to use for MD')
 args=parser.parse_args()
 
 #If the user is calculating hessian values
@@ -60,12 +61,12 @@ if args.hessian:
 
 #For anything else create scatter object
 # instantiate scatter object
-sc = iscattering.iscatter()
+sc = iscattering.iscatter(samples = args.traj[0], seed = args.seed[0])
 # read input file as argument ./test.py input
 sc.ReadInput(args.filename[0])
 
 if args.generate: 
-    output_name = generate_conditions(sc, args.traj[0])
+    sc = generate_conditions(sc, args.traj[0])
 
 if args.calcsteps:
     if platform.system() != 'Windows':

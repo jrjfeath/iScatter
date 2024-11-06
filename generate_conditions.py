@@ -7,5 +7,7 @@ def generate_conditions(sc, trajectories=10):
     # generate samples
     sc.GenSamples(N=trajectories)
     #write log into some file
-    open(sc.filename + '.logfile','w').writelines(sc.log)
-    return sc.fileout
+    with open(sc.filename + '.logfile','w') as opf:
+        opf.writelines(sc.log)
+    #Return the generated distributions
+    return sc

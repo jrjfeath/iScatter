@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+import sys
 import numpy as np
+from tqdm import tqdm
 
 def step(xx, oe, Fx, par, domain, dl):
     """
@@ -269,7 +271,8 @@ def SampleMC(nsamp, x0, Fx, par, **dic):
     mox = np.zeros(len(xx))
     xx, oe, mox = step(xx, oe, Fx, par, domain, dl)
     xout, eout = [], []
-    for i in range(1, niter):
+    if niter == 0: return xout, eout
+    for i in tqdm(range(1, niter), file=sys.stdout):
         xxx, ooe, pas, mox = MCstep(xx, Fx, par, dl, oe, domains=domain)
         xx, oe = xxx.copy(), ooe
         if i % ff == 0:

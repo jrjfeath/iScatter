@@ -3,3 +3,4 @@ geometric
 pyscf
 pyscf-semiempirical
 pyscf-qsdopt
+tqdm

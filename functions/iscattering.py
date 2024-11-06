@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import numpy as np
+from tqdm import tqdm
 from .constants import ang2au, au2ang, au2ev, au2fmt, au2mps, fmt2au, kboltz, mps2au, x, y, z
 from .dist import IPDist, MaxwellBoltzmann, GaussianF
 from .functions import COM, File2InputList, XYZlist, ReadXYZs
@@ -16,13 +17,15 @@ class iscatter:
         Args:
             dic (dict): Additional parameters for initialization.
         """
-
         self.mol = [imolecule(), imolecule()]
         self.chi = 0.0
+        self.Nsamp = dic['samples']
+        self.seed = dic['seed']
         self.log = []
         self.slog = []
         self.sampls = {'cv': [], 'info': []}
         self.sii = 0
+        self.write = True
         return
 
     def ReadInput(self, fnam):
@@ -79,8 +82,9 @@ class iscatter:
                 self.log += ["Directory Output Name: " + val[0] + "\n"]
                 self.dirout = val[0]
             if ky == "seed":
-                self.log += ["RNG Seed: " + val[0] + "\n"]
-                self.seed = int(val[0])
+                if self.seed == -1:
+                    self.log += ["RNG Seed: " + val[0] + "\n"]
+                    self.seed = int(val[0])
                 np.random.seed(self.seed)
             if ky == "trot":
                 self.log += ["Temperature for Rotational States: " + val[0] + " \n"]
@@ -99,7 +103,11 @@ class iscatter:
                 self.MaxV = int(val[0])
             if ky == "nsamp":
                 self.log += ["Number of generated samples: " + val[0] + "\n"]
-                self.Nsamp = int(val[0])
+                # Check if the user wants to generate more initial parameters then outputs
+                # I'm not sure why this is even an option, ask Chris
+                temp =  int(val[0])
+                if self.Nsamp < temp:
+                    self.Nsamp = temp
             if ky == "rz":
                 self.log += ["Intermolecular Z-Distance: " + val[0] + "\n"]
                 self.Rz = float(val[0])*ang2au
@@ -107,6 +115,10 @@ class iscatter:
                 self.log += ["Orientation Distribuition Function: " + val[0] + "\n"]
                 self.ordist = int(val[0])
                 self.orpars = [float(v) for v in val[1:]]
+            if ky == 'write':
+                self.log += ["Write data to files: " + val[0] + "\n"]
+                if val[0].lower() in ['false', '0']:
+                    self.write = False
         self.na = mol[0].na + mol[1].na
         self.el = mol[0].el + mol[1].el
         self.mass = np.array(mol[0].mass.tolist() + mol[1].mass.tolist())
@@ -121,6 +133,8 @@ class iscatter:
         self.nd = self.na * 3
         w0, w1 = sum(mol[0].mass), sum(mol[1].mass)
         self.w0, self.w1 = w0 / (w1 + w0), w1 / (w1 + w0)
+        self.xyz = []
+        self.vxyz = []
         self.consistentT()
         self.RigidRotorEnergies()
         self.InitializeSample()
@@ -300,25 +314,22 @@ class iscatter:
 
         This method generates initial distribution samples for various states, including vibrational, rotational, and velocity distributions.
         """
-        print("Generating Distribuitions, this may take a while...")
         # initialize sample counter and log:
         self.sii = 0
         self.slog = []
-        self.log += ["Generating " +
-                     str(self.Nsamp) + " Samples from distribuition \n"]
+        self.log += [f"Generating {self.Nsamp} Samples from distribuition \n"]
 
         # generates molecular vibrational and rotational distribuitions.
+        print('Generating molecular vibrational and rotational distributions...')
         for i in range(2):
             # overwrites molecular temperatures if system is provided:
             self.mol[i].Tvib, self.mol[i].Trot = self.Tvib, self.Trot
             self.mol[i].InitialDist(self.Nsamp)
             self.log += self.mol[i].log
             self.mol[i].log = []
-            print("Molecule " + str(i) + " done ...")
 
-        self.log += [
-            "Generated impact parater with maximum b= " + str(self.MaxB) + "\n"
-        ]
+        self.log += [f"Generated impact parater with maximum b= {self.MaxB}\n"]
+        print('Sampling impact parameter...')
         # impact parameter sampling:
         self.bsamp = [
             [abs(b)
@@ -326,6 +337,7 @@ class iscatter:
             0,
         ]
         self.chisamp = [np.random.rand() * self.chi for i in range(self.Nsamp)]
+        print('Sampling velocity distribution...')
         # generate Intermolecular velocity dist:
         if hasattr(self, "Tvel"):
             T = self.Tvel
@@ -468,10 +480,6 @@ class iscatter:
         # summarize energy from calculated/analysed sample:
         self.AnalyseSample()
         self.ImageXYZOut(mess="Sample " + str(self.sii))
-        open(
-            self.dirout + "/" + self.fileout +
-            "_" + str(self.sii) + ".info", "w"
-        ).writelines(self.slog)
 
     def SummarizeLogEnergy(self,FromSample):
         """Summarize energy-related information.
@@ -563,7 +571,6 @@ class iscatter:
 
         This method generates output files for image coordinates and velocities, storing them in the specified directory.
         """
-        mol = self.mol
         if "mess" in dic.keys():
             message = dic["mess"]
         else:
@@ -580,15 +587,17 @@ class iscatter:
         self.slog += [" Sample " +
                       str(self.sii) + " Velocities (au) : \n"]
         self.slog += vxyz[2:]
-        open(
-            self.dirout + "/" + self.fileout +
-            "_" + str(self.sii) + ".xyz", "w"
-        ).writelines(xyz)
-        open(
-            self.dirout + "/" + self.fileout +
-            "_" + str(self.sii) + ".vel", "w"
-        ).writelines(vxyz)
-        # np.savetxt(self.dirout + '/' + self.fileout+'_'+str(self.sii)+'.vel2',self.svv)
+        if self.write:
+            sub_name = self.dirout + "/" + self.fileout +"_" + str(self.sii)
+            with open(sub_name + ".xyz", "w") as opf:
+                opf.writelines(xyz)
+            with open(sub_name + ".vel", "w") as opf:
+                opf.writelines(vxyz)
+            with open(sub_name + ".info", "w") as opf:
+                opf.writelines(self.slog)
+        else:
+            self.xyz.append(xyz[2:])
+            self.vxyz.append(vxyz[2:])
 
     def SampleInterMolZVeloc(self):
         """Sample intermolecular z-velocity for the scattering event.
@@ -787,7 +796,7 @@ class iscatter:
         else:
             N = self.Nsamp
         print("Generating " + str(N) + " Samples, this may take a while ...")
-        for i in range(N):
+        for _ in tqdm(range(N)):
             self.GenerateSample()
 
     def AnalyseSample(self):

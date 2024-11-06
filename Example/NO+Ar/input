@@ -23,6 +23,8 @@ fileout = out
 Nsamp = 1000
 # set RNG seed
 seed = 400
+# write velocity/xyz/info data into files or memory only (True/False)
+write = False
 # if the molecules are polarized in some direction before scattering, then the chi (azimuthal angle) has to be sampled
 # this is the angle about the z coordinate determining the direction of the impact parameter vector (pi/2 i imagine)
 # chi = 1.570795
